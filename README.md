@@ -1,2 +1,2 @@
 # asm
-Just studying assembly
+Programar em assembly é gostoso de mais
