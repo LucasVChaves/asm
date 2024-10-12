@@ -115,17 +115,50 @@ parse_uint:
     ret
 
 string_equals:
-    xor rax, rax
+    mov al, byte[rdi]         ; moves the first byte of the str to 'al'
+    cmp al, byte [rsi]        ; compares with the fist byte of the other str
+    jne .not_equal            ; if not equal jmp to end
+    inc rdi                   ; else steps to next char
+    inc rsi                   ; steps to next char in the second str as well
+    test al, al               ; test if the current char is null terminator (0)
+    jnz string_equals         ; if is not, calls the subrotine again on the next chars
+    mov rax, 1                ; returns 1 if is equal
+    ret
+.not_equal:
+    xor rax, rax              ; returns 0 if no equal
+    ret 
+
+; rdi: source rsi: dest rdx: destlen
+string_copy:
+    push rdi                  ; |
+    push rsi                  ; |
+    push rdx                  ; pushes src, dest an destlen to stack
+    call string_length
+    pop rdi
+    pop rsi
+    pop rdx
+    
+    cmp rax, rdx              ; if rax (strlen) bigger then rdx
+    jae .too_long             ; jmp to label too_long
+    push rsi                  ; push rsi to stack
+.loop:
+    mov dl, byte [rdi]        ; moves first byte of rdi (src) to dl
+    mov byte[rsi], dl         ; moves dl (first byte of rdi) to first byte of rsi (dest)
+    inc rdi                   ; step 1 char in src
+    inc rsi                   ; step 1 char in dest
+    test dl, dl               ; test if current char is 0 (null terminator)
+    jnz .loop                 ; if not, iterate
+
+    pop rax                   ; remove previous size from stack
     ret
 
+.too_long:
+    xor rax, rax              ; if too long to copy just returns 0
+    ret
 
 read_char:
     xor rax, rax
     ret 
 
 read_word:
-    ret
-
-
-string_copy:
     ret
