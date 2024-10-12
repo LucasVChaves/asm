@@ -157,8 +157,69 @@ string_copy:
     ret
 
 read_char:
-    xor rax, rax
+    push 0
+    xor rax, rax              ; rax 0 = read syscall
+    xor rdi, rdi              ; fd (file descriptor) 0 = stdin
+    mov rsi, rsp,             ; address of first byte of the input buffer
+    mov rdx, 1                ; count (amount of bytes to read)
+    syscall
+    pop rax                   ; amount of read bytes, -1 if error
     ret 
 
 read_word:
+    push r14                  ; |
+    push r15                  ; push r14 and r15 to stack to store original values
+    xor r14, r14              ; zeroes r14
+    mov r15, rsi              ; |
+    dec r15                   ; defines the max length of the str (-1 due to 0-index)
+
+.ignore_empty_chars:
+    push rdi
+    call read_char
+    pop rdi
+    cmp al, ' '               ; if char = space
+    je .ignore_empty_chars
+    cmp al, 10                ; if char = new line
+    je .ignore_empty_chars
+    cmp al, 13                ; if char = CR 
+    je .ignore_empty_chars
+    cmp al, 9                 ; if char = tab
+    je .ignore_empty_chars
+    test al, al               ; if char = \0 
+    jz .end_ret
+
+.read:
+    mov byte [rdi + r14], al  ; store current char in memory 
+    inc r14                   ; step to next char 
+
+    push rdi
+    call read_char
+    pop rdi
+    cmp al, ' '
+    je .end_ret
+    cmp al, 10
+    je .end_ret
+    cmp al, 13
+    je .end_ret
+    cmp al, 9
+    je .end_ret
+    test al, al
+    je .end_ret
+    cmp r14, r15              ; r15 < 14
+    je .too_long
+
+    jmp .read
+
+.end_ret:
+    mov byte [rdi + r14], 0   ; insert null terminator at end
+    mov rax, rdi              ; returns ptr of str
+    mov rdx, r14              ; return strlen
+    pop r15                   ; restores previous r15 value
+    pop r14                   ; restores previous r15 value
+    ret
+
+.too_long:
+    xor rax, rax              ; return 0 
+    pop r15                   ; restores previous r15 value
+    pop r14                   ; restores previous r15 value
     ret
